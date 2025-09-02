@@ -1,0 +1,35 @@
+# Python 관련
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.egg
+
+# 환경 설정 파일
+.env
+*.env.local
+
+# 데이터베이스 파일
+*.sqlite
+
+# 로그 파일
+*.log
+
+# Jupyter Notebook 체크포인트
+.ipynb_checkpoints
+
+# IDE 관련 파일
+.vscode/
+.idea/
+
+# 빌드 결과물
+build/
+dist/
+*.egg-info/
+*.eggs/
+
+# 기타
+data/
+web/.env.local
