@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+reader
+feedparser
+feedsearch
+beautifulsoup4
+lxml
+charset-normalizer
+werkzeug<3.0.0
+pymongo
+pyyaml
+python-multipart
