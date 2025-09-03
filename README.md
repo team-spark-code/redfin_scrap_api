@@ -34,8 +34,9 @@ redfin_rss/
 ```bash
 ## 1. FastAPI 설치
 # 가상 환경 설치
+uv python list
 uv python install 3.10.18
-uv venv .scrap
+uv venv --python 3.10.18 .scrap
 source .scrap/bin/activate
 
 # 의존성 설치
