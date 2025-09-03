@@ -51,9 +51,9 @@ chmod -R u+rwX data
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
 source ~/.bashrc
 
-nvm install 22.0.0
-nvm use 22.0.0
-nvm alias default 22.0.0
+nvm install 22.18.0
+nvm use 22.18.0
+nvm alias default 22.18.0
 
 corepack enable
 corepack prepare pnpm@latest --activate
