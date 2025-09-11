@@ -5,6 +5,10 @@ FROM python:3.11-slim AS builder
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    make \
+    libffi-dev \
+    libssl-dev \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 가상환경 생성 및 활성화
@@ -12,10 +16,12 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # 의존성 파일 복사 및 설치
-COPY requirements.txt requirements.scrap.txt ./
-RUN pip install --no-cache-dir --upgrade pip && \
+COPY requirements.txt requirements.scrap.fixed.txt ./
+
+# 의존성 설치
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir -r requirements.scrap.txt
+    pip install --no-cache-dir -r requirements.scrap.fixed.txt
 
 # 프로덕션 이미지
 FROM python:3.11-slim AS production
