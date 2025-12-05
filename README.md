@@ -105,27 +105,23 @@ uvicorn backend.main:app --host 0.0.0.0 --port 8030 --reload
 uvicorn backend.main:app --host 0.0.0.0 --port 8030 --reload --log-level debug
 PYTHONPATH=$(pwd) uvicorn backend.main:app --host 0.0.0.0 --port 8030 --reload
 
-# CLI 단일 실행
-python cli/rss_tool.py init-indexes  # MongoDB 인덱스 초기화 (최초 1회만 실행)
-python cli/rss_tool.py init   # 초기 셋업 + 첫 업데이트
-python cli/rss_tool.py update # 주기 수집
-python cli/rss_tool.py stats --days 7 --out data/stats-7d.json # 통계 (최근 7일)
-python rss_tool.py discover --url https://techcrunch.com/tag/artificial-intelligence/ --top-k 3 # 신규 
+# CLI 명령어 (Typer 기반 통합 CLI)
+python -m backend.cli.main init-db                    # MongoDB 인덱스 초기화 (최초 1회만 실행)
+python -m backend.cli.main init                       # 초기 셋업 + 첫 업데이트
+python -m backend.cli.main update-feeds --days 7      # 주기 수집 (최근 7일)
+python -m backend.cli.main update-feeds --days 0      # 전체 백필
+python -m backend.cli.main stats --days 7 --out data/stats-7d.json  # 통계 (최근 7일)
+python -m backend.cli.main discover --url https://techcrunch.com/tag/artificial-intelligence/ --top-k 3  # 신규 피드 발견
+python -m backend.cli.main sync-feeds --delete-missing  # 피드 동기화
+python -m backend.cli.main import-opml data/feeds.opml  # OPML 가져오기
+python -m backend.cli.main export-opml --output data/export.opml  # OPML 내보내기
+python -m backend.cli.main sync-yaml --delete-missing   # YAML 동기화
 
-# 피드 탐색 및 추가
-python rss_tool.py opml-export --out feeds.opml # 현재 구독 내보내기(OPML)
-
-# (선택) feeds.yaml → Reader 등록/정합화
-python -m cli.feeds_sync --sync-yaml
-
-# 필요 시 Reader에만 있는 피드 제거도 수행
-python -m cli.feeds_sync --sync-yaml --delete-missing
-
-# (선택) OPML 대량 import (블랙리스트 자동 제외)
-python -m cli.feeds_sync --import-opml data/my_feeds.opml
-
-# (선택) 현재 Reader → OPML로 백업
-python -m cli.feeds_sync --export-opml
+# 피드 탐색 및 추가 (CLI로 통합됨)
+python -m backend.cli.main export-opml --output feeds.opml  # 현재 구독 내보내기(OPML)
+python -m backend.cli.main sync-yaml                        # feeds.yaml → Reader 등록/정합화
+python -m backend.cli.main sync-yaml --delete-missing       # Reader에만 있는 피드 제거
+python -m backend.cli.main import-opml data/my_feeds.opml   # OPML 대량 import (블랙리스트 자동 제외)
 
 # 전체 백필 (한 번만)
 curl -X POST "http://localhost:8030/update?days=0"
@@ -143,9 +139,7 @@ cd frontend && cp .env.local.example .env.local && npm i && npm run dev
 ### 초기화 & 활용
 ```bash
 # MongoDB 인덱스 초기화 (최초 1회만 실행, 앱 시작 전 권장)
-python cli/rss_tool.py init-indexes
-# 또는
-python -m cli.init_indexes
+python -m backend.cli.main init-db
 
 # 헬스체크
 curl http://localhost:8030/health

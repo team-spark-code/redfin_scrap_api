@@ -10,3 +10,5 @@ werkzeug<3.0.0
 pymongo
 pyyaml
 python-multipart
+typer
+rich
