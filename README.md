@@ -34,9 +34,8 @@ redfin_rss/
 │     ├─ url_norm.py
 │     ├─ opml_parser.py
 │     └─ agg_queries.py          # Mongo Aggregation 파이프라인 모음
-├─ cli/
-│  ├─ rss_tool.py                # 단일 실행 CLI (update/stats/discover/opml-export)
-│  └─ init_indexes.py            # MongoDB 인덱스 초기화 스크립트
+│  └─ cli/                       # CLI 진입점 (Typer)
+│     └─ main.py                 # 통합 CLI 명령어
 ├─ dags/
 │  └─ rss_pipeline.py            # Airflow DAG (HTTP로 FastAPI 호출 or 직접 import)
 ├─ frontend/                     # Next.js (원페이지 관리자 UI)
