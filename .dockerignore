@@ -88,12 +88,12 @@ scripts/
 *.bak
 *.backup
 
-# Next.js 관련 (web 디렉토리)
-web/node_modules/
-web/.next/
-web/out/
-web/build/
-web/dist/
+# Next.js 관련 (frontend 디렉토리)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
 
 # 데이터 파일 (대용량)
 *.csv
