@@ -1,20 +1,22 @@
 # backend/services/feed_service.py
-"""피드 관리 서비스 (CRUD, OPML, Discover)"""
+"""피드 관리 서비스 (CRUD, OPML, YAML 동기화)
+
+단일 책임 원칙(SRP)에 따라 피드의 CRUD와 관리만 담당합니다.
+RSS 피드 발견 로직은 backend.utils.discovery를 사용합니다.
+"""
 import logging
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 import xml.etree.ElementTree as ET
 import yaml
-import requests
-from bs4 import BeautifulSoup
-from feedsearch import search as fs_search
 
 from backend.repositories import FeedRepository
 from backend.services.reader_service import ReaderService
 from backend.core.config import PROJECT_ROOT, AI_FEEDS, BLACKLIST_FEEDS, BLACKLIST_DOMAINS
 from backend.utils.url_norm import normalize_url, sanitize_opml_bytes
 from backend.utils.opml_parser import load_opml_urls, parse_opml_file, generate_opml
+from backend.utils.discovery import discover_rss_feeds
 from backend.core.exceptions import FeedNotFoundException, FeedAlreadyExistsException
 
 logger = logging.getLogger(__name__)
@@ -92,33 +94,11 @@ class FeedService:
         
         return {"migrated": added, "skipped": skipped, "total": len(AI_FEEDS)}
 
-    def _discover_urls(self, url: str, top_k: int = 3) -> List[str]:
-        """URL에서 RSS 피드 발견"""
-        try:
-            res = fs_search(url, max_urls=20, timeout=10)
-            cands = [x.url for x in res][:top_k]
-            if cands:
-                return cands
-        except Exception:
-            pass
-        try:
-            html = requests.get(url, timeout=10).text
-            soup = BeautifulSoup(html, "lxml")
-            links = []
-            for l in soup.find_all("link"):
-                t = (l.get("type") or "").lower()
-                if "rss" in t or "atom" in t or "xml" in t:
-                    href = l.get("href")
-                    if href:
-                        links.append(href)
-            return links[:top_k]
-        except Exception:
-            return []
-
     def discover_feeds(self, url: str, top_k: int = 3) -> Dict[str, Any]:
         """URL에서 RSS 피드 발견 및 Reader에 추가"""
         r = self.reader_service.get_reader()
-        cands = self._discover_urls(url, top_k)
+        # Discovery 로직은 utils/discovery.py로 분리됨
+        cands = discover_rss_feeds(url, top_k=top_k)
         added, skipped = 0, 0
         for u in cands:
             try:

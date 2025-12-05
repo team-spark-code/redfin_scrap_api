@@ -7,6 +7,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from inspect import signature
+import requests
+from bs4 import BeautifulSoup
+from feedsearch import search as fs_search
 
 from backend.repositories import FeedRepository, EntryRepository
 from backend.services.reader_service import ReaderService
@@ -29,6 +32,29 @@ class CrawlerService:
         self.feed_repo = feed_repo or FeedRepository()
         self.entry_repo = entry_repo or EntryRepository()
         self.reader_service = ReaderService()
+
+    def discover_urls(self, url: str, top_k: int = 3) -> List[str]:
+        """URL에서 RSS 피드 발견 (Discovery 로직)"""
+        try:
+            res = fs_search(url, max_urls=20, timeout=10)
+            cands = [x.url for x in res][:top_k]
+            if cands:
+                return cands
+        except Exception:
+            pass
+        try:
+            html = requests.get(url, timeout=10).text
+            soup = BeautifulSoup(html, "lxml")
+            links = []
+            for l in soup.find_all("link"):
+                t = (l.get("type") or "").lower()
+                if "rss" in t or "atom" in t or "xml" in t:
+                    href = l.get("href")
+                    if href:
+                        links.append(href)
+            return links[:top_k]
+        except Exception:
+            return []
 
     def _supports_newer_than(self, r) -> bool:
         """Reader가 newer_than 파라미터를 지원하는지 확인"""
