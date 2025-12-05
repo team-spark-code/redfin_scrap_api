@@ -38,16 +38,16 @@ def health():
 
 @app.post("/init")
 def init():
-    from backend.api.deps import get_crawler_service
-    service = get_crawler_service()
+    from backend.core.container import Container
+    service = Container.get_crawler_service()
     return service.init_feeds()
 
 @app.post("/update")
 async def update(days: int = 1):
     from fastapi import BackgroundTasks, status
-    from backend.api.deps import get_crawler_service
+    from backend.core.container import Container
     background_tasks = BackgroundTasks()
-    service = get_crawler_service()
+    service = Container.get_crawler_service()
     days_param = None if days == 0 else days
     background_tasks.add_task(service.update_all, days=days_param)
     return {
@@ -58,45 +58,46 @@ async def update(days: int = 1):
 
 @app.get("/stats")
 def get_stats(days: int = 7):
-    from backend.api.deps import get_crawler_service
-    service = get_crawler_service()
+    from backend.core.container import Container
+    service = Container.get_crawler_service()
     return service.get_stats(days=days)
 
 @app.post("/discover")
 def discover(url: str, top_k: int = 3):
-    from backend.services.feed_service import FeedService
-    service = FeedService()
+    from backend.core.container import Container
+    service = Container.get_feed_service()
     return service.discover_feeds(url, top_k=top_k)
 
 @app.get("/feeds")
 def list_feeds(enabled: bool | None = None):
-    from backend.api.deps import get_feed_service
-    service = get_feed_service()
+    from backend.core.container import Container
+    service = Container.get_feed_service()
     feeds = service.get_all_feeds(enabled=enabled)
     return {"feeds": feeds, "total": len(feeds)}
 
 @app.post("/feeds")
 def add_feed(url: str, title: str | None = None, enabled: bool = True):
-    from backend.api.deps import get_feed_service
-    service = get_feed_service()
+    from fastapi import Body
+    from backend.core.container import Container
+    service = Container.get_feed_service()
     return service.add_feed(url, title=title, enabled=enabled)
 
 @app.delete("/feeds/{url:path}")
 def remove_feed(url: str):
-    from backend.api.deps import get_feed_service
-    service = get_feed_service()
+    from backend.core.container import Container
+    service = Container.get_feed_service()
     return service.remove_feed(url)
 
 @app.patch("/feeds/{url:path}")
 def update_feed_enabled(url: str, enabled: bool = True):
     from fastapi import Body
-    from backend.api.deps import get_feed_service
-    service = get_feed_service()
+    from backend.core.container import Container
+    service = Container.get_feed_service()
     return service.update_feed_enabled(url, enabled)
 
 @app.post("/feeds/migrate")
 def migrate_feeds():
-    from backend.api.deps import get_feed_service
-    service = get_feed_service()
+    from backend.core.container import Container
+    service = Container.get_feed_service()
     return service.migrate_feeds_from_config()
 
