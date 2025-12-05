@@ -18,8 +18,8 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
-from app.repositories import EntryRepository, FeedRepository
-from app.repositories.database import MongoManager
+from backend.repositories import EntryRepository, FeedRepository
+from backend.core.database import MongoManager
 
 logging.basicConfig(
     level=logging.INFO,

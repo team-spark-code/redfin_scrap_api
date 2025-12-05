@@ -1,7 +1,8 @@
 # cli/rss_tool.py
 import argparse, json, sys
-from app.rss_core import init_feeds, update_all, add_discovered_feeds, stats
-from app.config import DISCOVER_TARGETS
+from backend.services.crawler_service import CrawlerService
+from backend.services.feed_service import FeedService
+from backend.core.config import DISCOVER_TARGETS
 
 def run():
     p = argparse.ArgumentParser("rss_tool")
@@ -21,18 +22,21 @@ def run():
 
     args = p.parse_args()
 
+    crawler = CrawlerService()
+    feed_service = FeedService()
+    
     if args.cmd == "init":
-        print(init_feeds())
+        print(crawler.init_feeds())
     elif args.cmd == "update":
-        print(update_all())
+        print(crawler.update_all())
     elif args.cmd == "discover":
         if args.url:
-            print(add_discovered_feeds(args.url, args.top_k))
+            print(feed_service.discover_feeds(args.url, args.top_k))
         else:
-            out = [add_discovered_feeds(u, args.top_k) for u in DISCOVER_TARGETS]
+            out = [feed_service.discover_feeds(u, args.top_k) for u in DISCOVER_TARGETS]
             print(out)
     elif args.cmd == "stats":
-        res = stats(args.days)
+        res = crawler.get_stats(args.days)
         if args.out:
             with open(args.out, "w", encoding="utf-8") as f: json.dump(res, f, ensure_ascii=False, indent=2)
         print(res)

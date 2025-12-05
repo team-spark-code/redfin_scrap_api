@@ -7,11 +7,18 @@ redfin_rss/
 │  ├─ __init__.py
 │  ├─ config.py                  # 경로/환경변수, Mongo/DB 설정
 │  ├─ rss_core.py                # 공용 로직(수집, 발견, Mongo 미러링, 통계)
-│  └─ agg_queries.py             # Mongo Aggregation 파이프라인 모음
+│  ├─ agg_queries.py             # Mongo Aggregation 파이프라인 모음
+│  └─ repositories/              # Repository Pattern (데이터 접근 계층)
+│     ├─ __init__.py
+│     ├─ database.py             # MongoDB 연결 관리 (싱글톤)
+│     ├─ base.py                 # BaseRepository 추상 클래스
+│     ├─ feed_repository.py      # FeedRepository 구현
+│     └─ entry_repository.py     # EntryRepository 구현
 ├─ api/
-│  └─ main.py                    # FastAPI: /health /init /update /discover /stats
+│  └─ main.py                    # FastAPI: /health /init /update /discover /stats /feeds
 ├─ cli/
-│  └─ rss_tool.py                # 단일 실행 CLI (update/stats/discover/opml-export)
+│  ├─ rss_tool.py                # 단일 실행 CLI (update/stats/discover/opml-export)
+│  └─ init_indexes.py            # MongoDB 인덱스 초기화 스크립트
 ├─ dags/
 │  └─ rss_pipeline.py            # Airflow DAG (HTTP로 FastAPI 호출 or 직접 import)
 ├─ frontend/                     # Next.js (원페이지 관리자 UI)
@@ -126,24 +133,59 @@ python -m cli.init_indexes
 curl http://localhost:8030/health
 #{"ok":true}
 
-# 초기화
+# 초기화 (MongoDB에서 활성화된 피드를 Reader에 등록)
 curl -X POST http://localhost:8030/init
-#{"added":0,"skipped":6,"update_sec":5.14,"mongo_entries":{"skipped":true,"reason":"Command createIndexes requires authentication, full error: {'ok': 0.0, 'errmsg': 'Command createIndexes requires authentication', 'code': 13, 'codeName': 'Unauthorized'}"},"mongo_feeds":{"skipped":true,"reason":"Command createIndexes requires authentication, full error: {'ok': 0.0, 'errmsg': 'Command createIndexes requires authentication', 'code': 13, 'codeName': 'Unauthorized'}"}
+#{"added":25,"skipped":0,"update_sec":5.14,"mongo_entries":{"entries_processed":150},"mongo_feeds":{"feeds_upserted":25,"feeds_modified":0}}
 
-# 피드 업데이트
+# 피드 업데이트 (비동기, 즉시 202 Accepted 응답)
 curl -X POST http://localhost:8030/update
-# {"updated":true,"update_sec":4.85,"mongo_entries":{"entries_processed":1}}
+# {"status":"accepted","message":"피드 업데이트가 백그라운드에서 시작되었습니다 (days=1)","days":1}
 
 # 통계 조회
 curl "http://localhost:8030/stats?days=7"
-#{"generated_at":"2025-09-02T12:45:36.667341+00:00","days":7,"feeds":0,"entries_total":1,"entries_recent":1,"domains_top10":[{"domain":"huggingface.co","count":1}],"weekday_dist":{"3":1},"by_feed":[{"feed_url":"https://huggingface.co/blog/feed.xml","feed_title":"https://huggingface.co/blog/feed.xml","total":1,"recent_7d":1}]}
+#{"generated_at":"2025-09-02T12:45:36.667341+00:00","days":7,"feeds":25,"entries_total":1342,"entries_recent":212,"domains_top10":[{"domain":"huggingface.co","count":45}],"weekday_dist":{"1":30,"2":34,"3":33},"by_feed":[{"feed_url":"https://huggingface.co/blog/feed.xml","feed_title":"Hugging Face Blog","total":150,"recent_7d":45}]}
 ```
 
+### 피드 관리 (코드 배포 없이 피드 추가/삭제/활성화)
+```bash
+# 기존 config.py의 AI_FEEDS를 MongoDB로 마이그레이션 (최초 1회)
+curl -X POST http://localhost:8030/feeds/migrate
+#{"migrated":25,"skipped":0,"total":25}
+
+# 피드 목록 조회
+curl "http://localhost:8030/feeds"
+# 활성화된 피드만 조회
+curl "http://localhost:8030/feeds?enabled=true"
+
+# 피드 추가
+curl -X POST "http://localhost:8030/feeds" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/feed.xml", "title": "Example Feed", "enabled": true}'
+
+# 피드 비활성화
+curl -X PATCH "http://localhost:8030/feeds/https://example.com/feed.xml" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+
+# 피드 삭제
+curl -X DELETE "http://localhost:8030/feeds/https://example.com/feed.xml"
+```
+
+### 주요 변경사항
+- **Repository Pattern**: 데이터 접근 계층 분리, PyMongo 직접 사용 제거
+- **비동기 수집**: `/update` API가 백그라운드에서 실행되어 즉시 응답 반환
+- **피드 설정 DB화**: MongoDB에서 피드 관리, 코드 배포 없이 피드 추가/삭제 가능
+- **인덱스 최적화**: 별도 초기화 스크립트로 분리, 앱 시작 속도 개선
+
 ### 운영 팁
-- 백필 한 번: /backfill?days=365 등으로 Mongo에 최소 6–12개월치 적재 → 대시보드 유의미.
-- Discover 주기화: Airflow에서 주 1회 도메인 리스트 순회 → 신규 RSS 자동추가.
-- 휴면 피드 청소: 30일 이상 신규 없음 → 별도 리스트로 뽑아 점검.
-- 에러 로깅: 업데이트 시 피드별 HTTP/파싱 에러 카운트 집계 → 장애 피드 감지.
+- **인덱스 초기화**: 최초 1회 `python cli/rss_tool.py init-indexes` 실행 (앱 시작 전 권장)
+- **피드 마이그레이션**: 기존 config.py의 AI_FEEDS를 MongoDB로 이전 (`/feeds/migrate` API)
+- **백필**: `/backfill?days=365` 등으로 Mongo에 최소 6–12개월치 적재 → 대시보드 유의미
+- **비동기 업데이트**: `/update` API는 즉시 응답 반환, 백그라운드에서 수집 수행 (로그 확인)
+- **피드 관리**: 코드 배포 없이 `/feeds` API로 피드 추가/삭제/활성화 가능
+- **Discover 주기화**: Airflow에서 주 1회 도메인 리스트 순회 → 신규 RSS 자동추가
+- **휴면 피드 청소**: 30일 이상 신규 없음 → `/feeds` API로 비활성화 또는 삭제
+- **에러 로깅**: 업데이트 시 피드별 HTTP/파싱 에러 카운트 집계 → 장애 피드 감지
 
 
 ### Next.js 입력 대시보드
