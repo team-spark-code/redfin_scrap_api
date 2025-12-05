@@ -105,8 +105,8 @@ async def import_opml_api(
 
     if mirror:
         try:
-            from backend.services.crawler_service import CrawlerService
-            crawler = CrawlerService()
+            from backend.core.container import Container
+            crawler = Container.get_crawler_service()
             res["mongo"] = crawler.mirror_feeds_to_mongo()
         except Exception as e:
             res["mongo_error"] = str(e)
@@ -151,7 +151,7 @@ def sources_view(service: FeedService = Depends(get_feed_service)):
 @router.post("/mirror-to-mongo", summary="Reader의 feed 목록을 MongoDB feeds 컬렉션으로 동기화")
 def mirror_to_mongo(service: FeedService = Depends(get_feed_service)):
     """Reader의 feed 목록을 MongoDB feeds 컬렉션으로 동기화"""
-    from backend.api.deps import get_crawler_service
-    crawler = get_crawler_service()
+    from backend.core.container import Container
+    crawler = Container.get_crawler_service()
     return crawler.mirror_feeds_to_mongo()
 
