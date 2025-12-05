@@ -23,6 +23,8 @@ from backend.core.container import Container
 from backend.core.database import MongoManager
 from backend.repositories import EntryRepository, FeedRepository
 
+# Note: CLI는 Container를 통해 서비스를 생성하므로 API 계층을 의존하지 않습니다.
+
 app = typer.Typer(help="RedFin RSS Management CLI")
 console = Console()
 
