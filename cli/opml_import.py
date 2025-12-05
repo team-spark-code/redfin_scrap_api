@@ -2,10 +2,10 @@ import os
 import sys 
 import xml.etree.ElementTree as ET
 
-from app.rss_core import _reader
+from backend.services.reader_service import ReaderService
 
 def import_opml(path: str):
-    r = _reader()
+    r = ReaderService.get_reader()
     added = skipped = 0
     for o in ET.parse(path).iter("outline"):
         url = o.attrib.get("xmlUrl")

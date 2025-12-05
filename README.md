@@ -3,19 +3,37 @@
 ### 프로젝트 구조
 ```bash
 redfin_rss/
-├─ app/
-│  ├─ __init__.py
-│  ├─ config.py                  # 경로/환경변수, Mongo/DB 설정
-│  ├─ rss_core.py                # 공용 로직(수집, 발견, Mongo 미러링, 통계)
-│  ├─ agg_queries.py             # Mongo Aggregation 파이프라인 모음
-│  └─ repositories/              # Repository Pattern (데이터 접근 계층)
-│     ├─ __init__.py
-│     ├─ database.py             # MongoDB 연결 관리 (싱글톤)
-│     ├─ base.py                 # BaseRepository 추상 클래스
-│     ├─ feed_repository.py      # FeedRepository 구현
-│     └─ entry_repository.py     # EntryRepository 구현
-├─ api/
-│  └─ main.py                    # FastAPI: /health /init /update /discover /stats /feeds
+├─ backend/                      # Clean Architecture 백엔드
+│  ├─ main.py                    # FastAPI 앱 진입점
+│  ├─ core/                      # 전역 설정 및 핵심 유틸리티
+│  │  ├─ config.py               # 경로/환경변수, Mongo/DB 설정
+│  │  ├─ database.py             # MongoDB 연결 관리 (싱글톤)
+│  │  └─ exceptions.py           # 커스텀 예외 클래스
+│  ├─ api/                       # API 라우트
+│  │  ├─ deps.py                 # 의존성 주입
+│  │  └─ v1/
+│  │     ├─ api.py               # 라우터 통합
+│  │     └─ endpoints/           # API 엔드포인트
+│  │        ├─ feeds.py          # 피드 관리
+│  │        ├─ admin.py          # 초기화, 업데이트, 통계
+│  │        ├─ sync.py           # 동기화
+│  │        └─ blacklist.py      # 블랙리스트 관리
+│  ├─ schemas/                   # Pydantic 모델
+│  │  ├─ feed.py
+│  │  ├─ entry.py
+│  │  └─ common.py
+│  ├─ services/                  # 비즈니스 로직
+│  │  ├─ crawler_service.py      # RSS 피드 수집 및 미러링
+│  │  ├─ feed_service.py         # 피드 관리 (CRUD, OPML, Discover)
+│  │  └─ reader_service.py       # Reader 라이브러리 래퍼
+│  ├─ repositories/              # 데이터 접근 계층
+│  │  ├─ base.py                 # BaseRepository 추상 클래스
+│  │  ├─ feed_repo.py            # FeedRepository 구현
+│  │  └─ entry_repo.py           # EntryRepository 구현
+│  └─ utils/                     # 공통 유틸리티
+│     ├─ url_norm.py
+│     ├─ opml_parser.py
+│     └─ agg_queries.py          # Mongo Aggregation 파이프라인 모음
 ├─ cli/
 │  ├─ rss_tool.py                # 단일 실행 CLI (update/stats/discover/opml-export)
 │  └─ init_indexes.py            # MongoDB 인덱스 초기화 스크립트
@@ -83,9 +101,9 @@ pnpm dev
 ### 실행
 ```bash
 # FastAPI
-uvicorn api.main:app --host 0.0.0.0 --port 8030 --reload
-uvicorn api.main:app --host 0.0.0.0 --port 8030 --reload --log-level debug
-PYTHONPATH=$(pwd) uvicorn api.main:app --host 0.0.0.0 --port 8030 --reload
+uvicorn backend.main:app --host 0.0.0.0 --port 8030 --reload
+uvicorn backend.main:app --host 0.0.0.0 --port 8030 --reload --log-level debug
+PYTHONPATH=$(pwd) uvicorn backend.main:app --host 0.0.0.0 --port 8030 --reload
 
 # CLI 단일 실행
 python cli/rss_tool.py init-indexes  # MongoDB 인덱스 초기화 (최초 1회만 실행)

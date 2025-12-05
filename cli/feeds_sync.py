@@ -3,8 +3,8 @@ import sys
 from pathlib import Path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.feeds_io import load_blacklist_urls, load_feeds_yaml, import_opml, export_opml, sync_from_yaml
-from app.config import PROJECT_ROOT
+from backend.services.feed_service import FeedService
+from backend.core.config import PROJECT_ROOT
 
 from argparse import ArgumentParser
 
@@ -16,17 +16,22 @@ def main():
     p.add_argument("--delete-missing", action="store_true")
     args = p.parse_args()
 
+    service = FeedService()
+
     if args.import_opml:
-        bl = load_blacklist_urls()
-        res = import_opml(PROJECT_ROOT / args.import_opml, blacklist=bl)
+        bl = service.load_blacklist_urls()
+        res = service.import_opml(PROJECT_ROOT / args.import_opml, blacklist=bl)
         print(res)
 
     if args.sync_yaml:
-        res = sync_from_yaml(delete_missing=args.delete_missing)
+        res = service.sync_from_yaml(delete_missing=args.delete_missing)
         print(res)
 
     if args.export_opml:
-        xml = export_opml(PROJECT_ROOT / "data" / "my_feeds.opml")
+        xml = service.export_opml()
+        output_path = PROJECT_ROOT / "data" / "my_feeds.opml"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(xml, encoding="utf-8")
         print({"exported": True, "path": "data/my_feeds.opml", "length": len(xml)})
 
 if __name__ == "__main__":
