@@ -210,8 +210,8 @@ def import_opml(
         console.print(f"[yellow]⊘[/yellow] 건너뜀: {result['skipped']}개")
         
         if mirror:
-            from backend.api.deps import get_crawler_service
-            crawler = get_crawler_service()
+            from backend.core.container import Container
+            crawler = Container.get_crawler_service()
             mongo_result = crawler.mirror_feeds_to_mongo()
             console.print(f"[green]✓[/green] MongoDB 미러링 완료")
         
