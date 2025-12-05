@@ -26,7 +26,9 @@ DISCOVER_TARGETS = [
     "https://ai.googleblog.com/",                            # 루트에서도 <link> 탐색
 ]
 
-# 초기 AI 피드
+# 초기 AI 피드 (마이그레이션용 - MongoDB로 이전됨)
+# 주의: 이 리스트는 마이그레이션(/feeds/migrate API)에만 사용됩니다.
+# 새로운 피드는 MongoDB에 직접 추가하거나 /feeds API를 사용하세요.
 AI_FEEDS = [
     # --- Frontier / Big Tech Labs ---
     "https://openai.com/blog/rss.xml",
