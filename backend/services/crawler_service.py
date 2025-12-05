@@ -1,5 +1,9 @@
 # backend/services/crawler_service.py
-"""RSS 피드 수집 및 미러링 서비스"""
+"""RSS 피드 수집 및 미러링 서비스
+
+단일 책임 원칙(SRP)에 따라 RSS 피드 수집과 MongoDB 미러링만 담당합니다.
+RSS 피드 발견 로직은 backend.utils.discovery를 사용합니다.
+"""
 import hashlib
 import logging
 import time
@@ -7,9 +11,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 from inspect import signature
-import requests
-from bs4 import BeautifulSoup
-from feedsearch import search as fs_search
 
 from backend.repositories import FeedRepository, EntryRepository
 from backend.services.reader_service import ReaderService
@@ -17,6 +18,7 @@ from backend.utils.agg_queries import (
     pipeline_recent_count, pipeline_domains_top, 
     pipeline_by_feed, pipeline_weekday_dist
 )
+from backend.utils.discovery import discover_rss_feeds
 
 logger = logging.getLogger(__name__)
 
@@ -34,27 +36,8 @@ class CrawlerService:
         self.reader_service = ReaderService()
 
     def discover_urls(self, url: str, top_k: int = 3) -> List[str]:
-        """URL에서 RSS 피드 발견 (Discovery 로직)"""
-        try:
-            res = fs_search(url, max_urls=20, timeout=10)
-            cands = [x.url for x in res][:top_k]
-            if cands:
-                return cands
-        except Exception:
-            pass
-        try:
-            html = requests.get(url, timeout=10).text
-            soup = BeautifulSoup(html, "lxml")
-            links = []
-            for l in soup.find_all("link"):
-                t = (l.get("type") or "").lower()
-                if "rss" in t or "atom" in t or "xml" in t:
-                    href = l.get("href")
-                    if href:
-                        links.append(href)
-            return links[:top_k]
-        except Exception:
-            return []
+        """URL에서 RSS 피드 발견 (utils/discovery.py 사용)"""
+        return discover_rss_feeds(url, top_k=top_k)
 
     def _supports_newer_than(self, r) -> bool:
         """Reader가 newer_than 파라미터를 지원하는지 확인"""
