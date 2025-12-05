@@ -2,18 +2,15 @@ from __future__ import annotations
 from fastapi import APIRouter, Body
 from typing import Dict, Any, Set
 from pymongo import UpdateOne
-from app.config import MONGO_DB, MONGO_URI
 from app.feeds_io import load_feeds_yaml, load_opml_urls, load_blacklist_urls
 from app.urlnorm import normalize_url
-from pymongo import MongoClient
+from app.repositories.database import MongoManager
 
 router = APIRouter(tags=["sync"])
 
 def _mdb():
-    cli = MongoClient(MONGO_URI)
-    db = cli[MONGO_DB]
-    db.feeds.create_index([("_id", 1)], unique=True)
-    return db
+    """MongoDB 데이터베이스 인스턴스 반환 (인덱스 생성 없음)"""
+    return MongoManager.get_db()
 
 @router.post("/sync_feeds", summary="SOT(feeds.yaml + my_feeds.opml) ↔ MongoDB(redfin.feeds) 동기화")
 def sync_feeds(delete_missing: bool = Body(False, embed=True)) -> Dict[str, Any]:

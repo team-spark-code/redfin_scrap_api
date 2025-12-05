@@ -14,7 +14,7 @@ redfin_rss/
 │  └─ rss_tool.py                # 단일 실행 CLI (update/stats/discover/opml-export)
 ├─ dags/
 │  └─ rss_pipeline.py            # Airflow DAG (HTTP로 FastAPI 호출 or 직접 import)
-├─ web/                          # Next.js (원페이지 관리자 UI)
+├─ frontend/                     # Next.js (원페이지 관리자 UI)
 │  ├─ app/
 │  │  └─ page.tsx
 │  ├─ components/
@@ -40,8 +40,7 @@ uv venv --python 3.10.18 .scrap
 source .scrap/bin/activate
 
 # 의존성 설치
-uv pip install fastapi uvicorn "werkzeug<3.0.0" reader feedparser feedsearch beautifulsoup4 lxml charset-normalizer
-
+uv pip install fastapi uvicorn "werkzeug<3.0.0" reader feedparser feedsearch beautifulsoup4 lxml charset-normalizer dotenv pymongo pyyaml python-multipart
 # sqlite3 저장을 위한 data/ 생성 및 권한 부여
 mkdir -p data
 chmod -R u+rwX data
@@ -82,6 +81,7 @@ uvicorn api.main:app --host 0.0.0.0 --port 8030 --reload --log-level debug
 PYTHONPATH=$(pwd) uvicorn api.main:app --host 0.0.0.0 --port 8030 --reload
 
 # CLI 단일 실행
+python cli/rss_tool.py init-indexes  # MongoDB 인덱스 초기화 (최초 1회만 실행)
 python cli/rss_tool.py init   # 초기 셋업 + 첫 업데이트
 python cli/rss_tool.py update # 주기 수집
 python cli/rss_tool.py stats --days 7 --out data/stats-7d.json # 통계 (최근 7일)
@@ -107,8 +107,8 @@ curl -X POST "http://localhost:8030/update?days=0"
 
 # ------------------------------------------------------------------------------
 # Next.js
-cd web && cp .env.local.example .env.local && npm i && npm run dev
-# → http://localhost:4300 접속
+cd frontend && cp .env.local.example .env.local && npm i && npm run dev
+# → http://localhost:3000 접속
 
 
 # Airflow (HTTP Operator)
@@ -117,6 +117,11 @@ cd web && cp .env.local.example .env.local && npm i && npm run dev
 
 ### 초기화 & 활용
 ```bash
+# MongoDB 인덱스 초기화 (최초 1회만 실행, 앱 시작 전 권장)
+python cli/rss_tool.py init-indexes
+# 또는
+python -m cli.init_indexes
+
 # 헬스체크
 curl http://localhost:8030/health
 #{"ok":true}

@@ -9,6 +9,7 @@ def run():
 
     sp.add_parser("init")
     sp.add_parser("update")
+    sp.add_parser("init-indexes", help="MongoDB 인덱스 초기화")
 
     d = sp.add_parser("discover")
     d.add_argument("--url", default=None)
@@ -35,6 +36,10 @@ def run():
         if args.out:
             with open(args.out, "w", encoding="utf-8") as f: json.dump(res, f, ensure_ascii=False, indent=2)
         print(res)
+    elif args.cmd == "init-indexes":
+        from cli.init_indexes import init_all_indexes
+        success = init_all_indexes()
+        sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
     run()
