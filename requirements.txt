@@ -1,14 +1,30 @@
-fastapi
-uvicorn
-reader
-feedparser
-feedsearch
-beautifulsoup4
-lxml
-charset-normalizer
+# FastAPI 및 웹 서버
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# RSS 피드 처리
+reader>=3.17
+feedparser>=6.0.11
+feedsearch>=1.0.12
+
+# HTML/XML 파싱
+beautifulsoup4>=4.13.0
+lxml>=6.0.0
+
+# 인코딩 감지
+charset-normalizer>=3.4.0
+
+# 데이터베이스
+pymongo>=4.6.0
+
+# 설정 파일 처리
+pyyaml>=6.0.1
+python-dotenv>=1.0.0
+
+# CLI 도구
+typer>=0.9.0
+rich>=13.0.0
+
+# FastAPI 의존성 (버전 제한 필요)
 werkzeug<3.0.0
-pymongo
-pyyaml
-python-multipart
-typer
-rich
