@@ -1,8 +1,11 @@
-# Redfin Scraper v2
+# RedFin Scrap API
 
-### 프로젝트 구조
-```bash
-redfin_rss/
+AI RSS 뉴스 피드 수집 및 관리 API 서비스입니다. FastAPI 기반의 Clean Architecture로 구현되었으며, MongoDB를 통한 피드 관리와 Reader 라이브러리를 활용한 RSS 수집 기능을 제공합니다.
+
+## 📁 프로젝트 구조
+
+```
+redfin_scrap_api/
 ├─ backend/                      # Clean Architecture 백엔드
 │  ├─ main.py                    # FastAPI 앱 진입점
 │  ├─ core/                      # 전역 설정 및 핵심 유틸리티
@@ -30,10 +33,10 @@ redfin_rss/
 │  │  ├─ base.py                 # BaseRepository 추상 클래스
 │  │  ├─ feed_repo.py            # FeedRepository 구현
 │  │  └─ entry_repo.py           # EntryRepository 구현
-│  └─ utils/                     # 공통 유틸리티
-│     ├─ url_norm.py
-│     ├─ opml_parser.py
-│     └─ agg_queries.py          # Mongo Aggregation 파이프라인 모음
+│  ├─ utils/                     # 공통 유틸리티
+│  │  ├─ url_norm.py
+│  │  ├─ opml_parser.py
+│  │  └─ agg_queries.py          # Mongo Aggregation 파이프라인 모음
 │  └─ cli/                       # CLI 진입점 (Typer)
 │     └─ main.py                 # 통합 CLI 명령어
 ├─ dags/
@@ -47,30 +50,47 @@ redfin_rss/
 │  ├─ package.json
 │  ├─ next.config.mjs
 │  └─ .env.local.example
+├─ docs/                         # 문서 디렉토리
+│  └─ mongo.md                   # MongoDB 전략 문서
 ├─ data/                         # DB/산출물 보관 (gitignore)
 ├─ .env.example
-├─ requirements.txt
+├─ requirements.txt              # Python 의존성 (통합)
 └─ .gitignore
 ```
 
 
-### 설치
+## 🚀 설치
+
+### 사전 요구사항
+
+- Python 3.10+
+- MongoDB (로컬 또는 원격)
+- Node.js 22+ (프론트엔드용)
+
+### 백엔드 설치
+
 ```bash
-## 1. FastAPI 설치
-# 가상 환경 설치
-uv python list
+# 가상 환경 생성 및 활성화
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# 또는 uv 사용
 uv python install 3.10.18
-uv venv --python 3.10.18 .scrap
-source .scrap/bin/activate
+uv venv --python 3.10.18 .venv
+source .venv/bin/activate
 
 # 의존성 설치
-uv pip install fastapi uvicorn "werkzeug<3.0.0" reader feedparser feedsearch beautifulsoup4 lxml charset-normalizer dotenv pymongo pyyaml python-multipart
-# sqlite3 저장을 위한 data/ 생성 및 권한 부여
+pip install -r requirements.txt
+
+# 또는 uv 사용
+uv pip install -r requirements.txt
+
+# 데이터 디렉토리 생성
 mkdir -p data
 chmod -R u+rwX data
 
 
-## 2. Next.js 설치
+### 프론트엔드 설치
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
 source ~/.bashrc
 
@@ -97,7 +117,11 @@ pnpm install
 pnpm dev
 ```
 
-### 실행
+## 📝 참고 문서
+
+- **MongoDB 전략**: [`docs/mongo.md`](./docs/mongo.md) - MongoDB 인덱스 전략 및 집계 쿼리 가이드
+
+## 🏃 실행
 ```bash
 # FastAPI
 uvicorn backend.main:app --host 0.0.0.0 --port 8030 --reload
@@ -135,7 +159,7 @@ cd frontend && cp .env.local.example .env.local && npm i && npm run dev
 # Airflow UI에서 conn_id="rss_api"로 http://host.docker.internal:8030 등 등록 후 DAG on
 ```
 
-### 초기화 & 활용
+## 🔧 초기화 & 활용
 ```bash
 # MongoDB 인덱스 초기화 (최초 1회만 실행, 앱 시작 전 권장)
 python -m backend.cli.main init-db
@@ -157,7 +181,7 @@ curl "http://localhost:8030/stats?days=7"
 #{"generated_at":"2025-09-02T12:45:36.667341+00:00","days":7,"feeds":25,"entries_total":1342,"entries_recent":212,"domains_top10":[{"domain":"huggingface.co","count":45}],"weekday_dist":{"1":30,"2":34,"3":33},"by_feed":[{"feed_url":"https://huggingface.co/blog/feed.xml","feed_title":"Hugging Face Blog","total":150,"recent_7d":45}]}
 ```
 
-### 피드 관리 (코드 배포 없이 피드 추가/삭제/활성화)
+## 📊 피드 관리 (코드 배포 없이 피드 추가/삭제/활성화)
 ```bash
 # 기존 config.py의 AI_FEEDS를 MongoDB로 마이그레이션 (최초 1회)
 curl -X POST http://localhost:8030/feeds/migrate
@@ -182,13 +206,13 @@ curl -X PATCH "http://localhost:8030/feeds/https://example.com/feed.xml" \
 curl -X DELETE "http://localhost:8030/feeds/https://example.com/feed.xml"
 ```
 
-### 주요 변경사항
+## ✨ 주요 변경사항
 - **Repository Pattern**: 데이터 접근 계층 분리, PyMongo 직접 사용 제거
 - **비동기 수집**: `/update` API가 백그라운드에서 실행되어 즉시 응답 반환
 - **피드 설정 DB화**: MongoDB에서 피드 관리, 코드 배포 없이 피드 추가/삭제 가능
 - **인덱스 최적화**: 별도 초기화 스크립트로 분리, 앱 시작 속도 개선
 
-### 운영 팁
+## 💡 운영 팁
 - **인덱스 초기화**: 최초 1회 `python cli/rss_tool.py init-indexes` 실행 (앱 시작 전 권장)
 - **피드 마이그레이션**: 기존 config.py의 AI_FEEDS를 MongoDB로 이전 (`/feeds/migrate` API)
 - **백필**: `/backfill?days=365` 등으로 Mongo에 최소 6–12개월치 적재 → 대시보드 유의미
@@ -199,7 +223,7 @@ curl -X DELETE "http://localhost:8030/feeds/https://example.com/feed.xml"
 - **에러 로깅**: 업데이트 시 피드별 HTTP/파싱 에러 카운트 집계 → 장애 피드 감지
 
 
-### Next.js 입력 대시보드
+## 📈 Next.js 입력 대시보드
 - 총 피드/최근 N일 기사 수(카드)
 - 도메인 Top 10 (막대)
 - 요일 분포 (막대/히트맵)
